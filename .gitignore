@@ -1,0 +1,6 @@
+node_modules/
+package-lock.json
+docker-compose.yml
+index.js
+index.js.map
+main.js
