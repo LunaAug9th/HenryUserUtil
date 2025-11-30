@@ -4,7 +4,8 @@ import {
     Model,
     InferAttributes,
     InferCreationAttributes,
-    CreationOptional
+    CreationOptional,
+    Op
 } from "sequelize";
 import crypto from "crypto";
 
@@ -147,6 +148,20 @@ export default class UserUtil {
         }
     }
 
+    async EditUserInfo(ID: string, updates: Partial<{ username: string; passwd: Buffer | string }>) {
+        if (!this.Users) return null;
+        const user = await this.Users.findOne({ where: { ID } });
+        if (!user) return null;
+    
+        const updatedData: any = {};
+        if (updates.username) updatedData.username = updates.username;
+        if (updates.passwd) updatedData.passwd = Buffer.isBuffer(updates.passwd) ? updates.passwd : Buffer.from(updates.passwd);
+        updatedData.last_edited_at = Math.floor(Date.now() / 1000);
+    
+        await user.update(updatedData);
+        return true;
+    }
+
     async getUserInfo(ID: string) {
         try {
             if (!this.Users) return null;
@@ -190,7 +205,7 @@ export default class UserUtil {
         }
     }
 
-    async login(ID: string, hashedpasswd: Buffer | string): Promise<Buffer | null> {
+    async CreateSession(ID: string, hashedpasswd: Buffer | string): Promise<Buffer | null> {
         try {
             if (!this.Users || !this.Sessions) return null;
 
@@ -216,6 +231,38 @@ export default class UserUtil {
             console.error("[login ERROR]", err);
             return null;
         }
+    }
+    
+    async SessionsFromUser(ID: string) {
+        if (!this.Sessions) return null;
+        const rows = await this.Sessions.findAll({ where: { ID } });
+        return rows.map(r => ({ Token: r.Token, Expire_at: r.Expire_at }));
+    }
+    
+    async RenewSession(Token: Buffer | string, extendSeconds?: number) {
+        if (!this.Sessions) return null;
+        const buf = Buffer.isBuffer(Token) ? Token : Buffer.from(Token);
+        const session = await this.Sessions.findOne({ where: { Token: buf } });
+        if (!session) return null;
+    
+        const now = Math.floor(Date.now() / 1000);
+        const newExpire = now + (extendSeconds || this.SessionExpires);
+        await session.update({ Expire_at: newExpire });
+        return true;
+    }
+    
+    async CleanSession() {
+        if (!this.Sessions) return null;
+        const now = Math.floor(Date.now() / 1000);
+        await this.Sessions.destroy({ where: { Expire_at: { [Op.lt]: now } } });
+    }
+    
+    async getSessionInfo(Token: Buffer | string) {
+        if (!this.Sessions) return null;
+        const buf = Buffer.isBuffer(Token) ? Token : Buffer.from(Token);
+        const row = await this.Sessions.findOne({ where: { Token: buf } });
+        if (!row) return null;
+        return { ID: row.ID, Token: row.Token, Expire_at: row.Expire_at };
     }
 
     async checkSession(Token: Buffer | string): Promise<boolean | null> {
