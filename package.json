@@ -2,6 +2,17 @@
   "name": "henryuserutil",
   "version": "1.0.0",
   "main": "index.js",
+  "description": "library that provides easy user management",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lunaaug9th/HenryUserUtil.git"
+  },
+  "author": "Henry7611913083",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lunaaug9th/HenryUserUtil/issues"
+  },
+  "homepage": "https://github.com/lunaaug9th/HenryUserUtil#readme",
   "dependencies": {
     "sequelize": "^6.37.7"
   },
