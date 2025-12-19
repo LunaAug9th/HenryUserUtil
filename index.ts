@@ -162,7 +162,7 @@ export default class UserUtil {
         return true;
     }
 
-    async getUserInfo(ID: string) {
+    async getUserInfo(ID: string): Promise<any> {
         try {
             if (!this.Users) return null;
             const row = await this.Users.findOne({ where: { ID } });
@@ -257,7 +257,7 @@ export default class UserUtil {
         await this.Sessions.destroy({ where: { Expire_at: { [Op.lt]: now } } });
     }
     
-    async getSessionInfo(Token: Buffer | string) {
+    async getSessionInfo(Token: Buffer | string): Promise<any> {
         if (!this.Sessions) return null;
         const buf = Buffer.isBuffer(Token) ? Token : Buffer.from(Token);
         const row = await this.Sessions.findOne({ where: { Token: buf } });
