@@ -71,9 +71,14 @@ await userUtil.CleanSession();
 
 ## API
 
+### Error Codes
+
+* 19: Already Exist
+* null: Not Exist User
+
 ### User Methods
 
-* `CreateUser(username: string, hashedpasswd: Buffer | string): Promise<19 | null>`
+* `CreateUser(username: string, hashedpasswd: Buffer | string): Promise<19 | null>` (19: Already Exists Username)
 * `getUserInfo(ID: string): Promise<UserInfo | null>`
 * `EditUserInfo(ID: string, updates: Partial<{ username: string; passwd: Buffer | string }>): Promise<true | null>`
 * `deleteUser(ID: string): Promise<true | null>`
