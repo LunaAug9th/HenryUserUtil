@@ -74,6 +74,7 @@ await userUtil.CleanSession();
 ### Error Codes
 
 * 19: Already Exist
+* null: Not Exist User
 
 ### User Methods
 
