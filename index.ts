@@ -26,7 +26,7 @@ export class SessionModel extends Model<
     InferCreationAttributes<SessionModel>
 > {
     declare ID: CreationOptional<string>;
-    declare Token: Buffer;
+    declare Token: string;
     declare Expire_at: number;
 }
 
@@ -104,8 +104,10 @@ export default class UserUtil {
                         defaultValue: DataTypes.UUIDV4
                     },
                     Token: {
-                        type: DataTypes.BLOB,
-                        allowNull: false
+                        type: DataTypes.UUID,
+                        allowNull: false,
+                        defaultValue: DataTypes.UUIDV4,
+                        unique: true
                     },
                     Expire_at: {
                         type: DataTypes.INTEGER,
@@ -205,105 +207,108 @@ export default class UserUtil {
         }
     }
 
-    async CreateSession(ID: string, hashedpasswd: Buffer | string): Promise<Buffer | null> {
+    async CreateSession(ID: string, hashedpasswd: Buffer | string): Promise<string | null> {
         try {
             if (!this.Users || !this.Sessions) return null;
-
+    
             const user = await this.Users.findOne({ where: { ID } });
             if (!user) return null;
-
+    
             const passbuf = Buffer.isBuffer(hashedpasswd)
                 ? hashedpasswd
                 : Buffer.from(hashedpasswd);
-
+    
             if (Buffer.compare(user.passwd, passbuf) !== 0) return null;
-
-            const token = this.crypto.randomBytes(32);
+    
+            const token = crypto.randomUUID();
             const expire = Math.floor(Date.now() / 1000) + this.SessionExpires;
-
+    
             await this.Sessions.create({
+                ID,
                 Token: token,
                 Expire_at: expire
             });
-
+    
             return token;
         } catch (err) {
-            console.error("[login ERROR]", err);
+            console.error("[CreateSession ERROR]", err);
             return null;
         }
     }
     
     async SessionsFromUser(ID: string) {
         if (!this.Sessions) return null;
+    
         const rows = await this.Sessions.findAll({ where: { ID } });
-        return rows.map(r => ({ Token: r.Token, Expire_at: r.Expire_at }));
+        return rows.map(r => ({
+            Token: r.Token,
+            Expire_at: r.Expire_at
+        }));
     }
     
-    async RenewSession(Token: Buffer | string, extendSeconds?: number) {
+    async RenewSession(Token: string, extendSeconds?: number) {
         if (!this.Sessions) return null;
-        const buf = Buffer.isBuffer(Token) ? Token : Buffer.from(Token);
-        const session = await this.Sessions.findOne({ where: { Token: buf } });
+    
+        const session = await this.Sessions.findOne({ where: { Token } });
         if (!session) return null;
     
         const now = Math.floor(Date.now() / 1000);
-        const newExpire = now + (extendSeconds || this.SessionExpires);
+        const newExpire = now + (extendSeconds ?? this.SessionExpires);
+    
         await session.update({ Expire_at: newExpire });
         return true;
     }
     
     async CleanSession() {
         if (!this.Sessions) return null;
+    
         const now = Math.floor(Date.now() / 1000);
-        await this.Sessions.destroy({ where: { Expire_at: { [Op.lt]: now } } });
+        await this.Sessions.destroy({
+            where: { Expire_at: { [Op.lt]: now } }
+        });
     }
     
-    async getSessionInfo(Token: Buffer | string): Promise<any> {
+    async getSessionInfo(Token: string): Promise<{
+        ID: string;
+        Token: string;
+        Expire_at: number;
+    } | null> {
         if (!this.Sessions) return null;
-        const buf = Buffer.isBuffer(Token) ? Token : Buffer.from(Token);
-        const row = await this.Sessions.findOne({ where: { Token: buf } });
+    
+        const row = await this.Sessions.findOne({ where: { Token } });
         if (!row) return null;
-        return { ID: row.ID, Token: row.Token, Expire_at: row.Expire_at };
+    
+        return {
+            ID: row.ID,
+            Token: row.Token,
+            Expire_at: row.Expire_at
+        };
     }
-
-    async checkSession(Token: Buffer | string): Promise<boolean | null> {
-        try {
-            if (!this.Sessions) return null;
-
-            const buf = Buffer.isBuffer(Token) ? Token : Buffer.from(Token);
-
-            const row = await this.Sessions.findOne({
-                where: { Token: buf }
-            });
-
-            if (!row) return false;
-
-            const now = Math.floor(Date.now() / 1000);
-            if (row.Expire_at < now) {
-                await row.destroy();
-                return false;
-            }
-
-            return true;
-        } catch (err) {
-            console.error("[checkSession ERROR]", err);
-            return null;
+    
+    async checkSession(Token: string): Promise<boolean | null> {
+        if (!this.Sessions) return null;
+    
+        const row = await this.Sessions.findOne({ where: { Token } });
+        if (!row) return false;
+    
+        const now = Math.floor(Date.now() / 1000);
+        if (row.Expire_at < now) {
+            await row.destroy();
+            return false;
         }
+    
+        return true;
     }
-
-    async terminateSession(Token: Buffer | string): Promise<true | null> {
-        try {
-            if (!this.Sessions) return null;
-
-            const buf = Buffer.isBuffer(Token) ? Token : Buffer.from(Token);
-
-            const deleted = await this.Sessions.destroy({ where: { Token: buf } });
-            if (deleted === 0) return null;
-            return true;
-        } catch (err) {
-            console.error("[terminateSession ERROR]", err);
-            return null;
-        }
+    
+    async terminateSession(Token: string): Promise<true | null> {
+        if (!this.Sessions) return null;
+    
+        const deleted = await this.Sessions.destroy({ where: { Token } });
+        if (deleted === 0) return null;
+    
+        return true;
     }
+    
 
     async DisableUser(ID: string): Promise<true | null> {
         try {

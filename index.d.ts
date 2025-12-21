@@ -9,7 +9,7 @@ export declare class UserModel extends Model<InferAttributes<UserModel>, InferCr
 }
 export declare class SessionModel extends Model<InferAttributes<SessionModel>, InferCreationAttributes<SessionModel>> {
     ID: CreationOptional<string>;
-    Token: Buffer;
+    Token: string;
     Expire_at: number;
 }
 export interface UserUtilOptions {
@@ -36,16 +36,20 @@ export default class UserUtil {
     getUserInfo(ID: string): Promise<any>;
     deleteUser(ID: string): Promise<true | null>;
     getID(username: string): Promise<string | null>;
-    CreateSession(ID: string, hashedpasswd: Buffer | string): Promise<Buffer | null>;
+    CreateSession(ID: string, hashedpasswd: Buffer | string): Promise<string | null>;
     SessionsFromUser(ID: string): Promise<{
-        Token: Buffer;
+        Token: string;
         Expire_at: number;
     }[] | null>;
-    RenewSession(Token: Buffer | string, extendSeconds?: number): Promise<true | null>;
+    RenewSession(Token: string, extendSeconds?: number): Promise<true | null>;
     CleanSession(): Promise<null | undefined>;
-    getSessionInfo(Token: Buffer | string): Promise<any>;
-    checkSession(Token: Buffer | string): Promise<boolean | null>;
-    terminateSession(Token: Buffer | string): Promise<true | null>;
+    getSessionInfo(Token: string): Promise<{
+        ID: string;
+        Token: string;
+        Expire_at: number;
+    } | null>;
+    checkSession(Token: string): Promise<boolean | null>;
+    terminateSession(Token: string): Promise<true | null>;
     DisableUser(ID: string): Promise<true | null>;
     EnableUser(ID: string): Promise<true | null>;
 }

@@ -51,8 +51,10 @@ export default class UserUtil {
                     defaultValue: DataTypes.UUIDV4
                 },
                 Token: {
-                    type: DataTypes.BLOB,
-                    allowNull: false
+                    type: DataTypes.UUID,
+                    allowNull: false,
+                    defaultValue: DataTypes.UUIDV4,
+                    unique: true
                 },
                 Expire_at: {
                     type: DataTypes.INTEGER,
@@ -164,16 +166,17 @@ export default class UserUtil {
                 : Buffer.from(hashedpasswd);
             if (Buffer.compare(user.passwd, passbuf) !== 0)
                 return null;
-            const token = this.crypto.randomBytes(32);
+            const token = crypto.randomUUID();
             const expire = Math.floor(Date.now() / 1000) + this.SessionExpires;
             await this.Sessions.create({
+                ID,
                 Token: token,
                 Expire_at: expire
             });
             return token;
         }
         catch (err) {
-            console.error("[login ERROR]", err);
+            console.error("[CreateSession ERROR]", err);
             return null;
         }
     }
@@ -181,17 +184,19 @@ export default class UserUtil {
         if (!this.Sessions)
             return null;
         const rows = await this.Sessions.findAll({ where: { ID } });
-        return rows.map(r => ({ Token: r.Token, Expire_at: r.Expire_at }));
+        return rows.map(r => ({
+            Token: r.Token,
+            Expire_at: r.Expire_at
+        }));
     }
     async RenewSession(Token, extendSeconds) {
         if (!this.Sessions)
             return null;
-        const buf = Buffer.isBuffer(Token) ? Token : Buffer.from(Token);
-        const session = await this.Sessions.findOne({ where: { Token: buf } });
+        const session = await this.Sessions.findOne({ where: { Token } });
         if (!session)
             return null;
         const now = Math.floor(Date.now() / 1000);
-        const newExpire = now + (extendSeconds || this.SessionExpires);
+        const newExpire = now + (extendSeconds ?? this.SessionExpires);
         await session.update({ Expire_at: newExpire });
         return true;
     }
@@ -199,53 +204,42 @@ export default class UserUtil {
         if (!this.Sessions)
             return null;
         const now = Math.floor(Date.now() / 1000);
-        await this.Sessions.destroy({ where: { Expire_at: { [Op.lt]: now } } });
+        await this.Sessions.destroy({
+            where: { Expire_at: { [Op.lt]: now } }
+        });
     }
     async getSessionInfo(Token) {
         if (!this.Sessions)
             return null;
-        const buf = Buffer.isBuffer(Token) ? Token : Buffer.from(Token);
-        const row = await this.Sessions.findOne({ where: { Token: buf } });
+        const row = await this.Sessions.findOne({ where: { Token } });
         if (!row)
             return null;
-        return { ID: row.ID, Token: row.Token, Expire_at: row.Expire_at };
+        return {
+            ID: row.ID,
+            Token: row.Token,
+            Expire_at: row.Expire_at
+        };
     }
     async checkSession(Token) {
-        try {
-            if (!this.Sessions)
-                return null;
-            const buf = Buffer.isBuffer(Token) ? Token : Buffer.from(Token);
-            const row = await this.Sessions.findOne({
-                where: { Token: buf }
-            });
-            if (!row)
-                return false;
-            const now = Math.floor(Date.now() / 1000);
-            if (row.Expire_at < now) {
-                await row.destroy();
-                return false;
-            }
-            return true;
-        }
-        catch (err) {
-            console.error("[checkSession ERROR]", err);
+        if (!this.Sessions)
             return null;
+        const row = await this.Sessions.findOne({ where: { Token } });
+        if (!row)
+            return false;
+        const now = Math.floor(Date.now() / 1000);
+        if (row.Expire_at < now) {
+            await row.destroy();
+            return false;
         }
+        return true;
     }
     async terminateSession(Token) {
-        try {
-            if (!this.Sessions)
-                return null;
-            const buf = Buffer.isBuffer(Token) ? Token : Buffer.from(Token);
-            const deleted = await this.Sessions.destroy({ where: { Token: buf } });
-            if (deleted === 0)
-                return null;
-            return true;
-        }
-        catch (err) {
-            console.error("[terminateSession ERROR]", err);
+        if (!this.Sessions)
             return null;
-        }
+        const deleted = await this.Sessions.destroy({ where: { Token } });
+        if (deleted === 0)
+            return null;
+        return true;
     }
     async DisableUser(ID) {
         try {
