@@ -130,21 +130,21 @@ stop it at the session creation stage
     * ``SessionExpires?: UNIX Time Integer;``
 
 * ``default class UserUtil``
-    * ``Init(): Promise<void>;``
-    * ``CreateUser(username: string, hashedpasswd: Hashed Passwd Buffer): Promise<19 | null>;``
-    * ``EditUserInfo(ID: string, updates: Partial<{ username: string; passwd: Hashed Passwd Buffer; string; }>): Promise<true | null>;``
-    * ``getUserInfo(ID: string): Promise<any>;``
-    * ``deleteUser(ID: string): Promise<true | null>;``
-    * ``getID(username: string): Promise<string | null>;``
-    * ``CreateSession(ID: string, hashedpasswd: Hashed Passwd Buffer | string): Promise<string | null>;``
-    * ``SessionsFromUser(ID: string): Promise<{ Token: string; Expire_at: number; }[] | null>;``
-    * ``RenewSession(Token: string, extendSeconds?: number): Promise<true | null>;``
-    * ``CleanSession(): Promise<null | undefined>;``
-    * ``getSessionInfo(Token: string): Promise<{ ID: string; Token: string; Expire_at: number; } | null>;``
-    * ``checkSession(Token: string): Promise<boolean | null>;``
-    * ``terminateSession(Token: string): Promise<true | null>;``
-    * ``DisableUser(ID: string): Promise<true | null>;``
-    * ``EnableUser(ID: string): Promise<true | null>;``
+    * ``Init()``
+    * ``CreateUser(username: string, hashedpasswd: Hashed Passwd Buffer): 19 | null;``
+    * ``EditUserInfo(ID: string, updates: Partial<{ username: string; passwd: Hashed Passwd Buffer; }>): true | null;``
+    * ``getUserInfo(ID: string): UserModel;``
+    * ``deleteUser(ID: string): true | null;``
+    * ``getID(username: string): User UUID | null;``
+    * ``CreateSession(ID: string, hashedpasswd: Hashed Passwd Buffer | string): Token | null;``
+    * ``SessionsFromUser(ID: string): { Token: string; Expire_at: number; }[] | null;``
+    * ``RenewSession(Token: string, extendSeconds?: number): true | null;``
+    * ``CleanSession(): null | undefined>;``
+    * ``getSessionInfo(Token: string): { ID: string; Token: string; Expire_at: number; } | null;``
+    * ``checkSession(Token: string): (If it exists) True else false | null;``
+    * ``terminateSession(Token: string): true | null;``
+    * ``DisableUser(ID: string): true | null;``
+    * ``EnableUser(ID: string): true | null;``
 
 ### Meaning of return code
 
